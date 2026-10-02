@@ -1,5 +1,5 @@
-#ifndef LOG_H
-#define LOG_H
+#ifndef COD4X_GEO_WELCOME_PLUGIN_LOG_H
+#define COD4X_GEO_WELCOME_PLUGIN_LOG_H
 
 #ifdef VERBOSE
 #define DBG(logLevel, ...) do { \
@@ -13,12 +13,18 @@
 
 #endif
 
+#include <stddef.h>
 #include <stdint.h>
 
 enum logLevel {
     LOG_INFO,
     LOG_WARNING,
     LOG_ERROR
+
+};
+
+struct logCache {
+    char* logBuffer;
 
 };
 

@@ -1,50 +1,76 @@
 #include "../include/log.h"
+#include "../libs/pinc.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
 
+#define BUFFER_SIZE 2048
+
+struct logCache* lCache = NULL;
+
 void applicationLog(uint8_t logLevel, const char* prettyFunc, const char* msg) {
     time_t now = time(NULL);
     struct tm tmv = *localtime(&now);
 
     char* timeBuffer = (char*)malloc(256 * sizeof(char));
-    strftime(timeBuffer, 256, "%Y/%m/%d %H::%%M::%%S", &tmv);
+    strftime(timeBuffer, 256, "%Y/%m/%d %H::%M::%S", &tmv);
 
-    char* lLevel = NULL;
+    const char* lLevel = NULL;
     switch (logLevel) {
-        case (uint8_t)INFO:
-            lLevel = (char*)malloc(5 * sizeof(char));
-            strncpy(lLevel, "INFO", 5);
+        case (uint8_t)LOG_INFO:
+            lLevel = "INFO";
 
             break;
 
-        case (uint8_t)WARNING:
-            lLevel = (char*)malloc(8 * sizeof(char));
-            strncpy(lLevel, "WARNING", 8);
+        case (uint8_t)LOG_WARNING:
+            lLevel = "WARNING";
 
             break;
 
-        case (uint8_t)ERROR:
-            lLevel = (char*)malloc(6 * sizeof(char));
-            strncpy(lLevel, "ERROR", 6);
+        case (uint8_t)LOG_ERROR:
+            lLevel = "ERROR";
 
             break;
 
         default:
-            lLevel = (char*)malloc(8 * sizeof(char));
-            strncpy(lLevel, "UNKNOWN", 8);
+            lLevel = "UNKNOWN";
 
             break;
 
     }
 
-    char* buffer = (char*)malloc(1024 * sizeof(char));
-    snprintf("[ %s ] [ %s ]: %s\n", 1024, timeBuffer, lLevel, msg);
+    char* buffer = NULL;
+    if (!lCache) {
+        lCache = (struct logCache*)malloc(sizeof(struct logCache));
+        if (!lCache) {
+            applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "lCache is a null pointer, failed to allocate memory");
 
-    free(buffer);
-    free(lLevel);
+            return;
+
+        }
+
+        goto log_buffer_allocate;
+
+    } else if (!lCache->logBuffer){
+log_buffer_allocate:
+        lCache->logBuffer = (char*)malloc(BUFFER_SIZE * sizeof(char));
+        if (!lCache->logBuffer) {
+            applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "lCache->logBuffer is a null pointer, failed to allocate memory");
+
+            free(lCache);
+
+            return;
+
+        }
+
+    }
+    buffer = lCache->logBuffer;
+
+    snprintf(buffer, BUFFER_SIZE, "[ %s ] [ %s ]: %s\n", timeBuffer, lLevel, msg);
+    Plugin_Printf(buffer);
+
     free(timeBuffer);
 
 }

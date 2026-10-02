@@ -5,10 +5,11 @@ struct jsonGeoIpStruct {
     const char* countryName;
     const char* cityName;
     const char* asnOrganization;
-    const char* time;
+    const char* timeZone;
 
 };
 
+void jsonGeoIpStructDelete(struct jsonGeoIpStruct* geoIpStruct);
 struct jsonGeoIpStruct* jsonGeoIpParse(const char* json);
 
 #endif
