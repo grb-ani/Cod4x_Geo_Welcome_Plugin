@@ -87,9 +87,28 @@ PCL void OnPlayerConnect(int clientnum, netadr_t* netaddress, char* pbguid, char
 
             enterWorldFunctionArgsStruct->thread = &cliEnterWorldThreadArr[i];
             enterWorldFunctionArgsStruct->clientNum = (int*)malloc(sizeof(int));
+            if (!enterWorldFunctionArgsStruct->clientNum) {
+                applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "clientNum is a null pointer, failed to allocate memory");
+
+                free(enterWorldFunctionArgsStruct);
+
+                return;
+
+            }
+
             memcpy(enterWorldFunctionArgsStruct->clientNum, &clientnum, sizeof(int));
 
             enterWorldFunctionArgsStruct->networdAddressType = (netadr_t*)malloc(sizeof(netadr_t));
+            if (!enterWorldFunctionArgsStruct->networdAddressType) {
+                applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "networdAddressType is a null pointer, failed to allocate memory");
+
+                free(enterWorldFunctionArgsStruct->clientNum);
+                free(enterWorldFunctionArgsStruct);
+
+                return;
+
+            }
+
             enterWorldFunctionArgsStruct->networdAddressType->type = netaddress->type;
             memcpy(enterWorldFunctionArgsStruct->networdAddressType->ip, netaddress->ip, 4);
             memcpy(enterWorldFunctionArgsStruct->networdAddressType->ip6, netaddress->ip6, 16);

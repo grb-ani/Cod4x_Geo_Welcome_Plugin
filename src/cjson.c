@@ -61,7 +61,7 @@ const char* jsonApplicationApiKeyParse(const char* json) {
 
     }
 
-    if (cJSON_IsString(cJSON_GetObjectItem(jsonParser, "Api key"))) {
+    if (!cJSON_IsString(cJSON_GetObjectItem(jsonParser, "Api key"))) {
         applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "Api key object value is not found");
 
         cJSON_Delete(jsonParser);
@@ -73,6 +73,15 @@ const char* jsonApplicationApiKeyParse(const char* json) {
     char* apiKey = cJSON_GetObjectItem(jsonParser, "Api key")->valuestring;
     size_t apiKeyLen = strlen(apiKey);
     char* apiKeyCopy = (char*)malloc((apiKeyLen + 1) * sizeof(char));
+    if (!apiKeyCopy) {
+        applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "apiKeyCopy is a null pointer, failed to allocate memory");
+
+        cJSON_Delete(jsonParser);
+
+        return NULL;
+
+    }
+
     strncpy(apiKeyCopy, apiKey, apiKeyLen);
     apiKeyCopy[apiKeyLen] = '\0';
 
@@ -144,8 +153,8 @@ struct jsonGeoIpStruct* jsonGeoIpParse(const char* json) {
     }
 
     if (
-        cJSON_IsString(cJSON_GetObjectItem(locationObj, "country_name")) ||
-        cJSON_IsString(cJSON_GetObjectItem(locationObj, "city"))
+        !cJSON_IsString(cJSON_GetObjectItem(locationObj, "country_name")) ||
+        !cJSON_IsString(cJSON_GetObjectItem(locationObj, "city"))
        ) {
         applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "Some element value is not present in the provided locationObj");
 
@@ -162,7 +171,7 @@ struct jsonGeoIpStruct* jsonGeoIpParse(const char* json) {
     }
 
     if (
-        cJSON_IsString(cJSON_GetObjectItem(asnObj, "organization"))
+        !cJSON_IsString(cJSON_GetObjectItem(asnObj, "organization"))
        ) {
         applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "Some element value is not present in the provided asnObj");
 
@@ -179,7 +188,7 @@ struct jsonGeoIpStruct* jsonGeoIpParse(const char* json) {
     }
 
     if (
-        cJSON_IsString(cJSON_GetObjectItem(timeZoneObj, "current_time"))
+        !cJSON_IsString(cJSON_GetObjectItem(timeZoneObj, "current_time"))
        ) {
         applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "Some element value is not present in the provided asnObj");
 
@@ -200,9 +209,24 @@ child_element_not_present_exit:
 
     }
 
+    geoIpStruct->countryName = NULL;
+    geoIpStruct->cityName = NULL;
+    geoIpStruct->asnOrganization = NULL;
+    geoIpStruct->timeZone = NULL;
+
     char* countryName = cJSON_GetObjectItem(locationObj, "country_name")->valuestring;
     size_t countryNameLen = strlen(countryName);
     char* countryNameCopy = (char*)malloc((countryNameLen + 1) * sizeof(char));
+    if (!countryNameCopy) {
+        applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "countryNameCopy is a null pointer, failed to allocate memory");
+
+        cJSON_Delete(jsonParser);
+        jsonGeoIpStructDelete(geoIpStruct);
+
+        return NULL;
+
+    }
+
     strncpy(countryNameCopy, countryName, countryNameLen);
     countryNameCopy[countryNameLen] = '\0';
     geoIpStruct->countryName = countryNameCopy;
@@ -210,6 +234,16 @@ child_element_not_present_exit:
     char* cityName = cJSON_GetObjectItem(locationObj, "city")->valuestring;
     size_t cityNameLen = strlen(cityName);
     char* cityNameCopy = (char*)malloc((cityNameLen + 1) * sizeof(char));
+    if (!cityNameCopy) {
+        applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "cityNameCopy is a null pointer, failed to allocate memory");
+
+        cJSON_Delete(jsonParser);
+        jsonGeoIpStructDelete(geoIpStruct);
+
+        return NULL;
+
+    }
+
     strncpy(cityNameCopy, cityName, cityNameLen);
     cityNameCopy[cityNameLen] = '\0';
     geoIpStruct->cityName = cityNameCopy;
@@ -217,6 +251,16 @@ child_element_not_present_exit:
     char* asnOrganization = cJSON_GetObjectItem(asnObj, "organization")->valuestring;
     size_t asnOrganizationLen = strlen(asnOrganization);
     char* asnOrganizationCopy = (char*)malloc((asnOrganizationLen + 1) * sizeof(char));
+    if (!asnOrganizationCopy) {
+        applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "asnOrganizationCopy is a null pointer, failed to allocate memory");
+
+        cJSON_Delete(jsonParser);
+        jsonGeoIpStructDelete(geoIpStruct);
+
+        return NULL;
+
+    }
+
     strncpy(asnOrganizationCopy, asnOrganization, asnOrganizationLen);
     asnOrganizationCopy[asnOrganizationLen] = '\0';
     geoIpStruct->asnOrganization = asnOrganizationCopy;
@@ -224,6 +268,16 @@ child_element_not_present_exit:
     char* timeZone = cJSON_GetObjectItem(timeZoneObj, "current_time")->valuestring;
     size_t timeZoneLen = strlen(timeZone);
     char* timeZoneCopy = (char*)malloc((timeZoneLen + 1) * sizeof(char));
+    if (!timeZoneCopy) {
+        applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "timeZoneCopy is a null pointer, failed to allocate memory");
+
+        cJSON_Delete(jsonParser);
+        jsonGeoIpStructDelete(geoIpStruct);
+
+        return NULL;
+
+    }
+
     strncpy(timeZoneCopy, timeZone, timeZoneLen);
     timeZoneCopy[timeZoneLen] = '\0';
     geoIpStruct->timeZone = timeZoneCopy;

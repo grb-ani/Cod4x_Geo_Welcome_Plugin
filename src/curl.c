@@ -52,6 +52,13 @@ const char* curlFetchGeoLocationJson(const char* url) {
     }
 
     CURL* curl = curl_easy_init();
+    if (!curl) {
+        applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "curl is a null pointer, failed to initialize");
+
+        return NULL;
+
+    }
+
     struct writeCallBackStruct* wCallbackStruct = (struct writeCallBackStruct*)malloc(sizeof(struct writeCallBackStruct));
     if (!wCallbackStruct) {
         applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "wCallbackStruct is a null pointer, failed to allocate space");
