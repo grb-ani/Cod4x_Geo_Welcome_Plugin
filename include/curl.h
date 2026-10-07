@@ -3,13 +3,6 @@
 
 #include <curl/curl.h>
 
-struct curlCacheStruct {
-    CURL* curl;
-    void* curlCallbackStruct;
-
-};
-
-void curlCacheStructDelete(struct curlCacheStruct* cCacheStruct);
 const char* curlFetchGeoLocationJson(const char* url);
 
 #endif

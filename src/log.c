@@ -8,8 +8,6 @@
 
 #define BUFFER_SIZE 2048
 
-struct logCache* lCache = NULL;
-
 void applicationLog(uint8_t logLevel, const char* prettyFunc, const char* msg) {
     time_t now = time(NULL);
     struct tm tmv = *localtime(&now);
@@ -41,37 +39,21 @@ void applicationLog(uint8_t logLevel, const char* prettyFunc, const char* msg) {
 
     }
 
-    char* buffer = NULL;
-    if (!lCache) {
-        lCache = (struct logCache*)malloc(sizeof(struct logCache));
-        if (!lCache) {
-            applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "lCache is a null pointer, failed to allocate memory");
+    char* buffer = (char*)malloc(2048 * sizeof(char));
+    if (!buffer) {
+        applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "buffer is a null pointer, failed to allocate memory");
 
-            return;
+        free(timeBuffer);
 
-        }
-
-        goto log_buffer_allocate;
-
-    } else if (!lCache->logBuffer){
-log_buffer_allocate:
-        lCache->logBuffer = (char*)malloc(BUFFER_SIZE * sizeof(char));
-        if (!lCache->logBuffer) {
-            applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "lCache->logBuffer is a null pointer, failed to allocate memory");
-
-            free(lCache);
-
-            return;
-
-        }
+        return;
 
     }
-    buffer = lCache->logBuffer;
 
     snprintf(buffer, BUFFER_SIZE, "[ %s ] [ %s ]: %s\n", timeBuffer, lLevel, msg);
     Plugin_Printf(buffer);
 
     free(timeBuffer);
+    free(buffer);
 
 }
 

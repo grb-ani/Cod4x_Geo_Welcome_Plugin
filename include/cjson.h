@@ -9,6 +9,8 @@ struct jsonGeoIpStruct {
 
 };
 
+const char* jsonApplicationApiKeyParse(const char* json);
+
 void jsonGeoIpStructDelete(struct jsonGeoIpStruct* geoIpStruct);
 struct jsonGeoIpStruct* jsonGeoIpParse(const char* json);
 

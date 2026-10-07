@@ -23,11 +23,6 @@ enum logLevel {
 
 };
 
-struct logCache {
-    char* logBuffer;
-
-};
-
 void applicationLog(uint8_t logLevel, const char* prettyFunc, const char* msg);
 
 #endif

@@ -43,6 +43,45 @@ static cJSON* isJsonValid(const char* json) {
 
 }
 
+const char* jsonApplicationApiKeyParse(const char* json) {
+    cJSON* jsonParser = isJsonValid(json);
+    if (!jsonParser) {
+        applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "jsonParser is a null pointer, json is not valid");
+
+        return NULL;
+
+    }
+
+    if (!cJSON_HasObjectItem(jsonParser, "Api key")) {
+        applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "Api key object is not found");
+
+        cJSON_Delete(jsonParser);
+
+        return NULL;
+
+    }
+
+    if (cJSON_IsString(cJSON_GetObjectItem(jsonParser, "Api key"))) {
+        applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "Api key object value is not found");
+
+        cJSON_Delete(jsonParser);
+
+        return NULL;
+
+    }
+
+    char* apiKey = cJSON_GetObjectItem(jsonParser, "Api key")->valuestring;
+    size_t apiKeyLen = strlen(apiKey);
+    char* apiKeyCopy = (char*)malloc((apiKeyLen + 1) * sizeof(char));
+    strncpy(apiKeyCopy, apiKey, apiKeyLen);
+    apiKeyCopy[apiKeyLen] = '\0';
+
+    cJSON_Delete(jsonParser);
+
+    return apiKeyCopy;
+
+}
+
 void jsonGeoIpStructDelete(struct jsonGeoIpStruct* geoIpStruct) {
     if (geoIpStruct) {
         if (geoIpStruct->countryName) {
@@ -104,6 +143,16 @@ struct jsonGeoIpStruct* jsonGeoIpParse(const char* json) {
 
     }
 
+    if (
+        cJSON_IsString(cJSON_GetObjectItem(locationObj, "country_name")) ||
+        cJSON_IsString(cJSON_GetObjectItem(locationObj, "city"))
+       ) {
+        applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "Some element value is not present in the provided locationObj");
+
+        goto child_element_not_present_exit;
+
+    }
+
     cJSON* asnObj = cJSON_GetObjectItem(jsonParser, "asn");
     if (!cJSON_HasObjectItem(asnObj, "organization")) {
         applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "Some element is not present in the provided asnObj");
@@ -112,9 +161,27 @@ struct jsonGeoIpStruct* jsonGeoIpParse(const char* json) {
 
     }
 
+    if (
+        cJSON_IsString(cJSON_GetObjectItem(asnObj, "organization"))
+       ) {
+        applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "Some element value is not present in the provided asnObj");
+
+        goto child_element_not_present_exit;
+
+    }
+
     cJSON* timeZoneObj = cJSON_GetObjectItem(jsonParser, "time_zone");
     if (!cJSON_HasObjectItem(timeZoneObj, "current_time")) {
         applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "Some element is not present in the provided timeZoneObj");
+
+        goto child_element_not_present_exit;
+
+    }
+
+    if (
+        cJSON_IsString(cJSON_GetObjectItem(timeZoneObj, "current_time"))
+       ) {
+        applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "Some element value is not present in the provided asnObj");
 
 child_element_not_present_exit:
         cJSON_Delete(jsonParser);
@@ -154,7 +221,7 @@ child_element_not_present_exit:
     asnOrganizationCopy[asnOrganizationLen] = '\0';
     geoIpStruct->asnOrganization = asnOrganizationCopy;
 
-    char* timeZone = cJSON_GetObjectItem(asnObj, "organization")->valuestring;
+    char* timeZone = cJSON_GetObjectItem(timeZoneObj, "current_time")->valuestring;
     size_t timeZoneLen = strlen(timeZone);
     char* timeZoneCopy = (char*)malloc((timeZoneLen + 1) * sizeof(char));
     strncpy(timeZoneCopy, timeZone, timeZoneLen);
