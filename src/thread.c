@@ -130,7 +130,9 @@ void* threadCliEnterWorldFunction(void* arg) {
     r->asn       = strdup(geoIpStruct->asnOrganization);
     r->timezone  = strdup(geoIpStruct->timeZone);
 
+    pthread_mutex_lock(&geoWelcomeMutex);
     pendingResults[pendingCount++] = r;
+    pthread_mutex_unlock(&geoWelcomeMutex);
 
     jsonGeoIpStructDelete(geoIpStruct);
 

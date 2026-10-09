@@ -14,6 +14,7 @@
 
 GeoWelcomeResult* pendingResults[64];
 int pendingCount = 0;
+pthread_mutex_t geoWelcomeMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static pthread_t cliEnterWorldThreadArr[5] = {0};
 
@@ -175,6 +176,8 @@ PCL void OnPlayerConnect(int clientnum, netadr_t* netaddress, char* pbguid, char
 }
 
 PCL void OnClientEnterWorld(client_t* client) {
+    pthread_mutex_lock(&geoWelcomeMutex);
+
     int clientnum = Plugin_GetClientNumForClient(client);
 
     for (int i = 0; i < pendingCount; i++) {
@@ -206,6 +209,7 @@ PCL void OnClientEnterWorld(client_t* client) {
             break;
         }
     }
+    pthread_mutex_unlock(&geoWelcomeMutex);
 }
 
 

@@ -1,6 +1,10 @@
 #ifndef GEOWELCOME_QUEUE_H
 #define GEOWELCOME_QUEUE_H
 
+#include <pthread.h>
+
+extern pthread_mutex_t geoWelcomeMutex;
+
 typedef struct GeoWelcomeResult {
     int   clientNum;
     char* country;
