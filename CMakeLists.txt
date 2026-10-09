@@ -6,35 +6,39 @@ project(cod4x_geo_welcome_plugin
     LANGUAGES C
 )
 
-# The engine derives a plugin's short name from its filename without extension
-# (see libs/plugin_declarations.h), so the module is built as geoip.so and that
-# short name is what the server sees. The config file is unrelated to this name:
-# OnInit() opens "geoWelcomeConfig.json" from the server's working directory.
-set(PLUGIN_NAME geoip)
+# ---------------------------------------------------------------------------
+# Force 32-bit build for COD4X plugin
+# ---------------------------------------------------------------------------
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR i386)
 
-# Enable the DBG() tracing in include/log.h
-option(GEOIP_VERBOSE "Compile the DBG() tracing calls in" OFF)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32 -Wall -O1 -fvisibility=hidden -mtune=core2")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -m32 -shared")
 
+# ---------------------------------------------------------------------------
+# Force 32-bit libcurl (CMake otherwise picks the 64-bit version)
+# ---------------------------------------------------------------------------
+set(CURL_INCLUDE_DIR "/usr/include")
+set(CURL_LIBRARY "/usr/lib/i386-linux-gnu/libcurl.so")
 find_package(CURL REQUIRED)
 
-# cJSON ships no CMake config on every distro, so resolve it through pkg-config.
-# PCRE2 is deliberately NOT requested: nothing in src/ or include/ includes
-# <pcre2.h>; it is only a private dependency of libcjson itself.
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(CJSON REQUIRED IMPORTED_TARGET libcjson)
+# ---------------------------------------------------------------------------
+# Embed cJSON (Debian Trixie ships no libcjson.pc for i386)
+# ---------------------------------------------------------------------------
+add_library(CJSON STATIC libs/cjson/cJSON.c)
+target_include_directories(CJSON PUBLIC libs/cjson)
 
-# src/main.c calls pthread_create() and src/thread.c calls pthread_exit(), so
-# link the thread library explicitly instead of relying on it leaking in
-# transitively from libc.
+# ---------------------------------------------------------------------------
+# Threads (pthread)
+# ---------------------------------------------------------------------------
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-# MODULE, not SHARED: this is dlopen()ed by the server, so it must not carry a
-# SONAME and is always position independent.
-#
-# No --no-undefined: Plugin_Printf, Plugin_ChatPrintf, Plugin_GetPlayerName and
-# friends are declared but not defined here. They are resolved at load time from
-# the server executable, so undefined symbols are expected and required.
+# ---------------------------------------------------------------------------
+# Build plugin module (dlopen()ed by COD4X)
+# ---------------------------------------------------------------------------
+set(PLUGIN_NAME geoip)
+
 add_library(${PLUGIN_NAME} MODULE
     src/main.c
     src/thread.c
@@ -44,20 +48,23 @@ add_library(${PLUGIN_NAME} MODULE
     src/structs.c
 )
 
-# No target_include_directories() on purpose: every source already reaches its
-# own headers with "../include/..." and "../libs/..." relative paths. Adding
-# include/ to the search path would let include/curl.h shadow curl/curl.h.
+# Include paths for plugin headers + COD4X SDK + cJSON
+target_include_directories(${PLUGIN_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/cjson
+)
+
 target_link_libraries(${PLUGIN_NAME} PRIVATE
     CURL::libcurl
-    PkgConfig::CJSON
+    CJSON
     Threads::Threads
 )
 
+# COD4X plugin requirements
 set_target_properties(${PLUGIN_NAME} PROPERTIES
     C_STANDARD 11
     C_STANDARD_REQUIRED ON
-    # Matches PCL_LOCAL in libs/pinc.h. Everything without an explicit PCL
-    # marker stays internal, so only the On* entry points are exported.
     C_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN ON
     POSITION_INDEPENDENT_CODE ON
@@ -66,27 +73,21 @@ set_target_properties(${PLUGIN_NAME} PROPERTIES
 
 target_compile_options(${PLUGIN_NAME} PRIVATE
     -Wall
-    # The SDK macros PCL and __iceimport put __attribute__((cdecl)) on every
-    # declaration. That attribute is a no-op on x86-64 SysV, so GCC reports
-    # "'cdecl' attribute ignored" ~190 times per translation unit (189 in
-    # log.c/thread.c, 193 in main.c). Marking the SDK directory SYSTEM does not
-    # help, because src/ includes it through the relative path
-    # "../libs/pinc.h" rather than through the include path.
     -Wno-attributes
 )
 
+# Optional verbose logging
+option(GEOIP_VERBOSE "Compile the DBG() tracing calls in" OFF)
 if(GEOIP_VERBOSE)
     target_compile_definitions(${PLUGIN_NAME} PRIVATE VERBOSE)
 endif()
 
-# Where the built module lands. Configure with -B build, so this is build/.
+# Output directory
 set_target_properties(${PLUGIN_NAME} PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
-# Deploy into the server's plugin directory:
-#   cmake --install build --prefix /path/to/cod4x
-# which writes <prefix>/plugins/geoip.so
+# Install into COD4X plugin directory
 install(TARGETS ${PLUGIN_NAME}
     LIBRARY DESTINATION plugins
 )

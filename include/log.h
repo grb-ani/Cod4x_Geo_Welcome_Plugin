@@ -23,7 +23,7 @@ enum logLevel {
 
 };
 
-void applicationLog(uint8_t logLevel, const char* prettyFunc, const char* msg);
+void applicationLog(uint8_t logLevel, const char* prettyFunc, const char* fmt, ...);
 
 #endif
 

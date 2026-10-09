@@ -1,5 +1,5 @@
-#include "../include/curl.h"
-#include "../include/log.h"
+#include "curl.h"
+#include "log.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -104,6 +104,8 @@ const char* curlFetchGeoLocationJson(const char* url) {
 
     wCallbackStruct->contents[wCallbackStruct->size] = '\0';
     const char* json = wCallbackStruct->contents;
+    applicationLog(LOG_INFO, __PRETTY_FUNCTION__,
+                "Raw JSON response: %.800s", json);
 
     free(wCallbackStruct);
 

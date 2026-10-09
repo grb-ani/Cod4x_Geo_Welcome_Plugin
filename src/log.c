@@ -1,68 +1,42 @@
-#define _POSIX_C_SOURCE 200809L
-
-#include "../include/log.h"
-#include "../libs/pinc.h"
-
+#include <stdarg.h>
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <time.h>
 
-#define BUFFER_SIZE 2048
+#include "pinc.h"
+#include "log.h"
 
-void applicationLog(uint8_t logLevel, const char* prettyFunc, const char* msg) {
+
+void applicationLog(uint8_t logLevel, const char* prettyFunc, const char* fmt, ...)
+{
+    char timeBuffer[64];
+    char messageBuffer[1024];
+    char finalBuffer[1400];
+
+    // Timestamp
     time_t now = time(NULL);
     struct tm tmv;
     localtime_r(&now, &tmv);
+    strftime(timeBuffer, sizeof(timeBuffer), "%Y/%m/%d %H:%M:%S", &tmv);
 
-    char* timeBuffer = (char*)malloc(256 * sizeof(char));
-    if (!timeBuffer) {
-        Plugin_Printf("[ ERROR ]: timeBuffer is a null pointer, failed to allocate memory\n");
-
-        return;
-
-    }
-
-    strftime(timeBuffer, 256, "%Y/%m/%d %H::%M::%S", &tmv);
-
-    const char* lLevel = NULL;
+    // Log level → string
+    const char* lLevel;
     switch (logLevel) {
-        case (uint8_t)LOG_INFO:
-            lLevel = "INFO";
-
-            break;
-
-        case (uint8_t)LOG_WARNING:
-            lLevel = "WARNING";
-
-            break;
-
-        case (uint8_t)LOG_ERROR:
-            lLevel = "ERROR";
-
-            break;
-
-        default:
-            lLevel = "UNKNOWN";
-
-            break;
-
+        case LOG_INFO:    lLevel = "INFO";    break;
+        case LOG_WARNING: lLevel = "WARNING"; break;
+        case LOG_ERROR:   lLevel = "ERROR";   break;
+        default:          lLevel = "UNKNOWN"; break;
     }
 
-    char* buffer = (char*)malloc(2048 * sizeof(char));
-    if (!buffer) {
-        Plugin_Printf("[ ERROR ]: buffer is a null pointer, failed to allocate memory\n");
+    // Format the user message
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(messageBuffer, sizeof(messageBuffer), fmt, args);
+    va_end(args);
 
-        free(timeBuffer);
+    // Build final log line
+    snprintf(finalBuffer, sizeof(finalBuffer),
+             "[ %s ] [ %s ] [ %s ]: %s\n",
+             timeBuffer, lLevel, prettyFunc, messageBuffer);
 
-        return;
-
-    }
-
-    snprintf(buffer, BUFFER_SIZE, "[ %s ] [ %s ] [ %s ]: %s\n", timeBuffer, lLevel, prettyFunc, msg);
-    Plugin_Printf("%s", buffer);
-
-    free(timeBuffer);
-    free(buffer);
-
+    Plugin_Printf("%s", finalBuffer);
 }

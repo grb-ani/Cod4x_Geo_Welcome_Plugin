@@ -1,9 +1,10 @@
-#include "../include/thread.h"
+#include "thread.h"
 
-#include "../include/structs.h"
-#include "../include/curl.h"
-#include "../include/cjson.h"
-#include "../include/log.h"
+#include "structs.h"
+#include "curl.h"
+#include "cjson.h"
+#include "log.h"
+#include "geowelcome_queue.h"
 
 #include <malloc.h>
 #include <arpa/inet.h>
@@ -24,6 +25,10 @@ void threadCliEnterWorldFunctionArgsStructDelete(struct threadCliEnterWorldFunct
 
         }
 
+        if (cliEnterWorldThreadStruct->bootstrapIp) {
+            free(cliEnterWorldThreadStruct->bootstrapIp);
+        }
+
         free(cliEnterWorldThreadStruct);
 
     }
@@ -41,6 +46,9 @@ void* threadCliEnterWorldFunction(void* arg) {
 
     }
 
+    applicationLog(LOG_INFO, __PRETTY_FUNCTION__,
+                "addrType = %d", cliEnterWorldStruct->networdAddressType->type);
+
     if (!aConfig) {
         applicationLog(LOG_ERROR, __PRETTY_FUNCTION__, "aConfig is a null pointer");
 
@@ -52,8 +60,12 @@ void* threadCliEnterWorldFunction(void* arg) {
     }
 
     char ip[64];
-    netadrtype_t addrType = cliEnterWorldStruct->networdAddressType->type;
-    switch (addrType) {
+
+    if (cliEnterWorldStruct->bootstrapIp) {
+        snprintf(ip, sizeof(ip), "%s", cliEnterWorldStruct->bootstrapIp);
+    } else {
+        netadrtype_t addrType = cliEnterWorldStruct->networdAddressType->type;
+        switch (addrType) {
         case NA_IP:
         {
             struct in_addr address;
@@ -79,7 +91,7 @@ void* threadCliEnterWorldFunction(void* arg) {
             threadCliEnterWorldFunctionArgsStructDelete(cliEnterWorldStruct);
 
             pthread_exit(NULL);
-
+        }
     }
 
     char url[256];
@@ -109,15 +121,16 @@ void* threadCliEnterWorldFunction(void* arg) {
 
     }
 
-    Plugin_ChatPrintf(
-        -1,
-        "^3%s ^7has connected from ^2%s^7, ^2%s ^7[^1%s^7] (^3%s^7)",
-        Plugin_GetPlayerName(*(cliEnterWorldStruct->clientNum)),
-        geoIpStruct->countryName,
-        geoIpStruct->cityName,
-        geoIpStruct->asnOrganization,
-        geoIpStruct->timeZone
-    );
+    applicationLog(LOG_INFO, __PRETTY_FUNCTION__, "geoIpStruct.countryName: %s, geoIpStruct.cityName: %s, geoIpStruct.asnOrganization: %s, geoIpStruct.timeZone: %s",
+                   geoIpStruct->countryName, geoIpStruct->cityName, geoIpStruct->asnOrganization, geoIpStruct->timeZone);
+    GeoWelcomeResult* r = malloc(sizeof(GeoWelcomeResult));
+    r->clientNum = *(cliEnterWorldStruct->clientNum);
+    r->country   = strdup(geoIpStruct->countryName);
+    r->city      = strdup(geoIpStruct->cityName);
+    r->asn       = strdup(geoIpStruct->asnOrganization);
+    r->timezone  = strdup(geoIpStruct->timeZone);
+
+    pendingResults[pendingCount++] = r;
 
     jsonGeoIpStructDelete(geoIpStruct);
 
